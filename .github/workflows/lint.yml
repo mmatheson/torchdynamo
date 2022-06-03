@@ -15,7 +15,6 @@ jobs:
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
 
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
