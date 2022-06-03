@@ -10,8 +10,8 @@ creates this FX Graph through bytecode analysis and is designed to mix
 Python execution with compiled backends to get the best of both worlds:
 usability and performance.
 
-[PEP 523]: https://www.python.org/dev/peps/pep-0523/
-[FX Graph]: https://pytorch.org/docs/stable/fx.html
+[pep 523]: https://www.python.org/dev/peps/pep-0523/
+[fx graph]: https://pytorch.org/docs/stable/fx.html
 
 ![](TorchDynamo.png)
 
@@ -26,7 +26,7 @@ Links for more information and development progress updates:
 - [Update 7: Inference with FX2TRT](https://dev-discuss.pytorch.org/t/torchdynamo-update-7-inference-with-fx2trt/576)
 - (Video) [Live deep-dive into TorchDynamo](https://www.youtube.com/watch?v=egZB5Uxki0I)
 
-*TorchDynamo is experimental* and under active development.
+_TorchDynamo is experimental_ and under active development.
 You are welcome to try it out and contribute, but should expect to find
 bugs and rough edges.
 
@@ -35,32 +35,34 @@ bugs and rough edges.
 Python 3.8 is recommended.
 Python 3.7 through 3.10 are supported and tested.
 
-*PyTorch*'s main branch contains some fixes that improve TorchDynamo
+_PyTorch_'s main branch contains some fixes that improve TorchDynamo
 support, so we recommend building [PyTorch from source] or using PyTorch
 nightly builds.
 
-[PyTorch from source]: https://github.com/pytorch/pytorch#from-source
+[pytorch from source]: https://github.com/pytorch/pytorch#from-source
 
 For reproducing the experiments in the posts above, use the TorchBenchmark
-[fork found here].  This fork contains a few minor fixes that have not
+[fork found here]. This fork contains a few minor fixes that have not
 yet been merged upstream.
 
 [fork found here]: https://github.com/jansel/benchmark
 
 Other development requirements can be installed with:
+
 ```shell
 pip install -r requirements.txt
 ```
 
 Install TorchDynamo with:
+
 ```shell
 python setup.py develop
 ```
 
-
 ## Usage Example
 
 Here is a basic example of how to use TorchDynamo:
+
 ```py
 from typing import List
 import torch
@@ -83,6 +85,7 @@ with torchdynamo.optimize(my_compiler):
 ```
 
 Running this example produces the following output:
+
 ```
 my_compiler() called with FX graph:
 opcode         name     target                                                  args              kwargs
@@ -117,11 +120,11 @@ output         output  output                   ((mul,),)  {}
 Note that the order of the last two graphs is nondeterministic depending
 on which one is encountered first by the just-in-time compiler.
 
-
 ## Adding Backends
 
 One could replace `my_compiler()` with something that generates faster
 code, for example one using [optimize_for_inference]:
+
 ```py
 def my_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
     scripted = torch.jit.trace(gm, example_inputs)
@@ -129,9 +132,10 @@ def my_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
 ```
 
 TorchDynamo also includes many backends, which can be found in
-[backends.py] or `torchdynamo.list_backends()`.  Note many backends
-require installing additional packages.  You can combine these backends
+[backends.py] or `torchdynamo.list_backends()`. Note many backends
+require installing additional packages. You can combine these backends
 together with code like:
+
 ```py
 from torchdynamo.optimizations import BACKENDS
 
@@ -151,7 +155,7 @@ def my_compiler(gm: torch.fx.GraphModule, example_inputs: List[torch.Tensor]):
 If you just want to use an existing backend, you can pass a
 string containing the backend name to `torchdynamo.optimize()`.
 `torchdynamo.optimize()` can also be used as a decorator on functions,
-methods, or nn.Modules().  So a shorter version of using [optimize_for_inference] on `toy_example` would be:
+methods, or nn.Modules(). So a shorter version of using [optimize_for_inference] on `toy_example` would be:
 
 ```py
 @torchdynamo.optimize("ofi")
@@ -165,7 +169,8 @@ def toy_example(a, b):
 ## Guards
 
 TorchDynamo operates just-in-time and specializes graphs based on dynamic
-properties.  For example, the first graph above has the following guards:
+properties. For example, the first graph above has the following guards:
+
 ```
 GUARDS:
  - local 'a' TENSOR_MATCH
@@ -176,32 +181,34 @@ GUARDS:
 If any of those guards fail, the graph will be recaptured and recompiled.
 The interesting guard type there is `TENSOR_MATCH`, which checks the
 following torch.Tensor properties:
+
 - Python class of the tensor (tensor subclassing, etc)
 - dtype
 - device
 - requires_grad
 - dispatch_key (with thread-local includes/excludes applied)
 - ndim
-- sizes* (optional)
-- strides* (optional)
+- sizes\* (optional)
+- strides\* (optional)
 
-*For sizes/strides you can disable this specialization by setting:
+\*For sizes/strides you can disable this specialization by setting:
+
 ```py
 torchdynamo.config.dynamic_shapes = True
 ```
 
 The full specialization mode allows the backend compiler to assume
-an entirely static graph.  Unfortunately, most backends require this.
+an entirely static graph. Unfortunately, most backends require this.
 Operators which return dynamic shapes will trigger a graph break when
 not in dynamic shape mode.
-
 
 ## Run Mode / Quiescence Guarantee
 
 In some cases, you may not want unexpected compiles after a program
-has warmed up.  For example, if you are serving production traffic in a
-latency critical application.  For this, TorchDynamo provides an alternate
+has warmed up. For example, if you are serving production traffic in a
+latency critical application. For this, TorchDynamo provides an alternate
 mode where prior compiled graphs are used, but no new ones are generated:
+
 ```py
 with torchdynamo.run():
     toy_example(torch.randn(10), torch.randn(10))
@@ -210,15 +217,17 @@ with torchdynamo.run():
 ## Single Whole-Program Graph Mode
 
 In some cases, you may want to ensure there are no graph breaks in your
-program to debug performance issues.  You can turn graph breaks into
+program to debug performance issues. You can turn graph breaks into
 errors by setting
 `nopython=True`:
+
 ```py
 with torchdynamo.optimize(my_compiler, nopython=True):
     toy_example(torch.randn(10), torch.randn(10))
 ```
 
 Which will trigger the following error in the example program above:
+
 ```py
 Traceback (most recent call last):
   ...
@@ -231,6 +240,7 @@ Processing original code:
 ## Deeper Dive
 
 If you want to understand better what TorchDynamo is doing, you can set:
+
 ```py
 torchdynamo.config.debug = True
 ```
@@ -239,6 +249,7 @@ which triggers useful (but spammy) printouts.
 
 For example, the printouts for the first graph in the `toy_example`
 above are:
+
 ```
 __compiled_fn_0 <eval_with_key>.1
 opcode         name     target                                                  args              kwargs
@@ -307,14 +318,15 @@ GUARDS:
 
 At the top you can see the FX graph (which we already shared above).
 Next you see the original bytecode of the function, followed by the
-modified bytecode generated by TorchDynamo.  Finally, you see the guards
+modified bytecode generated by TorchDynamo. Finally, you see the guards
 which we covered above.
 
 In the modified bytecode `__compiled_fn_0` is the return value
 of `my_compiler()` (the compiled graph). `__resume_at_30_1` and
 `__resume_at_38_2` are both generated continuation functions that pick up
-execution after a graph break (at bytecode offsets 30 and 38).  Each of
+execution after a graph break (at bytecode offsets 30 and 38). Each of
 these functions take the form:
+
 ```
 __resume_at_<offset>:
     ... restore stack state if needed ...
@@ -333,7 +345,7 @@ As background reading, I'd suggest looking at the
 [PyTorch](https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md),
 [functorch](https://github.com/pytorch/functorch), and
 [TorchBench](https://github.com/pytorch/benchmark#installation)
-setup docs.  Since these projects work together in different ways.
+setup docs. Since these projects work together in different ways.
 
 The following instructions use [Miniconda](https://docs.conda.io/en/latest/miniconda.html).
 
@@ -355,11 +367,12 @@ make test
 
 If see errors about missing symbols from `guards.so`, that may mean your
 C++ compiler is incompatible CUDA and/or with the one used to compile
-PyTorch.  You may need to change your compiler version or build PyTorch
+PyTorch. You may need to change your compiler version or build PyTorch
 from source.
 
 To add TorchBench, which is useful for benchmarking and more extensive
 testing:
+
 ```
 # you should still be in the conda env from before
 
@@ -387,16 +400,19 @@ make lint-deps
 [![Test Python 3.10](https://github.com/pytorch/torchdynamo/actions/workflows/test-py310.yml/badge.svg)](https://github.com/pytorch/torchdynamo/actions/workflows/test-py39.yml)
 
 Run tests with
+
 ```shell
 pytest tests
 ```
 
 To debug a specific test (with more debug prints) do:
+
 ```shell
 pytest -vsk <test name>
 ```
 
 Test on torchbenchmark models with:
+
 ```shell
 python torchbench.py
 ```
@@ -404,7 +420,7 @@ python torchbench.py
 ## Performance Measurement
 
 To reproduce the performance measurements shared in the posts above,
-run either `make offline-autotune-cpu` or `make offline-autotune-gpu`.  These targets
+run either `make offline-autotune-cpu` or `make offline-autotune-gpu`. These targets
 will run something like the following:
 
 ```shell
@@ -425,8 +441,7 @@ python torchbench.py -dcuda --speedup -n100
 
 The baselines can be run with `make baseline-cpu` or `make baseline-gpu`.
 Which both string together a lot of calls to `./torchbench.py` and
-generate `*.csv` files.  See `./torchbench.py --help` for more options.
-
+generate `*.csv` files. See `./torchbench.py --help` for more options.
 
 ## Linting and Automatic Code Formatting
 
@@ -435,6 +450,7 @@ generate `*.csv` files.  See `./torchbench.py --help` for more options.
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 
 Install format/linter deps with `pip install -r requirements.txt`, then:
+
 ```shell
 make format  # reformat all files (in-place)
 make lint    # run the linters

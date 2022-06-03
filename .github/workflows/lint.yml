@@ -10,13 +10,11 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
-        cache: 'pip'
-    - run: make lint-deps
-    - run: make lint
+      - uses: actions/checkout@v2
+
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
